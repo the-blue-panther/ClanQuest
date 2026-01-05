@@ -33,19 +33,21 @@ notebooks/
 Thumbs.db
 
 # =========================
-# RL Training Artifacts
+# Documentation & Reports
+# =========================
+report/
+REPORT_TEMPLATE.md
+*TensorBoard_DRL*project*images*for*training_files/
+setup.py
+tests/
+configs/
+
+# =========================
+# RL Training & Models
 # =========================
 models/checkpoints/
 models/trained/*.zip
 !models/trained/ppo_final_emergence.zip
-
-# =========================
-# Project Scaffolding (Excluded from Repo)
-# =========================
-setup.py
-tests/
-configs/
-"TensorBoard_DRL project images for training_files/"
 
 # =========================
 # Experiment Outputs
@@ -53,6 +55,14 @@ configs/
 logs/
 results/
 tensorboard/
+
+# =========================
+# Assets & Screenshots (Keep for Repo/README)
+# =========================
+!assets/
+!assets/plots/
+!assets/screenshots/
+!game_env_ss/
 
 # =========================
 # Temporary / Debug
