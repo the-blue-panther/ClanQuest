@@ -1,0 +1,59 @@
+# =========================
+# Python / Virtual Env
+# =========================
+venv/
+.env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+
+# =========================
+# IDE / Editor files
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# =========================
+# Jupyter
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# OS-specific
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# RL Training Artifacts (Ignore all checkpoints and intermediate logs)
+# =========================
+models/checkpoints/
+models/trained/*.zip
+!models/trained/ppo_final_emergence.zip
+
+# =========================
+# Experiment Outputs
+# =========================
+logs/
+results/
+tensorboard/
+
+# =========================
+# Temporary / Debug
+# =========================
+*.log
+*.tmp
+*.bak
+
+# =========================
+# Environment / Secrets
+# =========================
+.env.*
+config.local.yaml
