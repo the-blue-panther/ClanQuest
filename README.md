@@ -26,15 +26,18 @@ To provide scientific rigor, the project utilizes the following metrics to evalu
 
 ### 1. Macro Survival Index (MSI)
 The primary robustness metric across evaluations.
+
 $$MSI = \frac{1}{N} \sum_{ep=1}^{N} \left( \frac{P_{final}}{P_{initial}} \right)_{ep}$$
 
 ### 2. Geopolitical Expansion Rate (GER)
 Measures the velocity of territorial conquest vs. defense.
+
 $$GER = \frac{\sum_{t=1}^{T} \Delta \text{Territory}_{captured}(t)}{T}$$
 
 ### 3. Metabolic Efficiency (ME)
 Quantifies foraging intelligence relative to caloric cost.
-$$ME = \frac{\text{Resource}_{total}}{\sum_{t=1}^{T} \sum_{i=1}^{P} C_{metabolic}(i, t)}$$
+
+$$ME = \displaystyle\frac{\text{Resource}_{total}}{\sum_{t=1}^{T} \sum_{i=1}^{P} C_{metabolic}(i, t)}$$
 
 ---
 
