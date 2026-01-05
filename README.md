@@ -41,13 +41,21 @@ $$ME = \displaystyle\frac{\text{Resource}_{total}}{\sum_{t=1}^{T} \sum_{i=1}^{P}
 
 ---
 
+### 4. Tribal Behavioral Divergence
+**ClanQuest** now supports group-level behavioral unbundling. By analyzing MSI, GER, and ME per clan, we can study how different starting territories (resource-rich vs. resource-poor) drive divergent evolutionary paths—some clans becoming efficient foragers while others become aggressive border defenders.
+
+---
+
 ## 📊 Scientific Observations & Results
 
 ### The "Survival-Stress" Paradox
-Our evaluation reveals that agents achieve a high **80% survival rate (MSI)** despite maintaining an **Emotional Stability Score (ESS) of 0.00**. This demonstrates that the optimal survival policy in a hostile environment is **perpetual vigilance** (STRESSED/FEARFUL states), proving that "Safety" is not required for "Survival."
+Our evaluation reveals that agents achieve a high **83% survival rate (MSI)** despite maintaining an **Emotional Stability Score (ESS) of 0.00**. This demonstrates that the optimal survival policy in a hostile environment is **perpetual vigilance** (STRESSED/FEARFUL states).
 
-### Training Convergence
-The model was trained for **2.5 million timesteps** using Proximal Policy Optimization (PPO).
+### Clan-Specific Behavioral Emergence
+<p align="center">
+  <img src="assets/plots/scientific_clan_comparison.png" width="90%" alt="Clan Comparison" />
+</p>
+*Figure: Comparative analysis of the three clans, showing divergent strategies in survival (MSI) and territorial expansion (GER).*
 
 <p align="center">
   <img src="assets/plots/scientific_training_history.png" width="45%" alt="Training History" />

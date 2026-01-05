@@ -50,12 +50,21 @@ SEASON_COLORS = {
 # INIT
 # =========================================
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+# GLOBAL SCALE state
+current_width, current_height = WIDTH, HEIGHT
+screen = pygame.display.set_mode((current_width, current_height), pygame.RESIZABLE)
 pygame.display.set_caption("Emergent MARL: Geopolitical Conflict & Cooperation")
 font = pygame.font.SysFont("consolas", 12)
 small_font = pygame.font.SysFont("consolas", 11)
 bold_font = pygame.font.SysFont("consolas", 14, bold=True)
 clock = pygame.time.Clock()
+
+# Scaling util
+def get_cells():
+    grid_render_width = current_width - PANEL_WIDTH
+    sc_x = grid_render_width / GRID_SIZE
+    sc_y = current_height / GRID_SIZE
+    return sc_x, sc_y
 
 # =========================================
 # ENV
@@ -80,11 +89,12 @@ except Exception as e:
 # DRAW HELPERS
 # =========================================
 def draw_world(world):
+    sc_x, sc_y = get_cells()
     # Territory layer
     for (x, y), cid in world.territory_map.items():
-        rect = pygame.Rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+        rect = pygame.Rect(int(x * sc_x), int(y * sc_y), int(sc_x)+1, int(sc_y)+1)
         color = CLAN_COLORS[cid]
-        s = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
+        s = pygame.Surface((int(sc_x)+1, int(sc_y)+1), pygame.SRCALPHA)
         s.fill((*color, 80)) # Increased alpha from 45 to 80
         screen.blit(s, rect)
         # Subtle border to distinguish cells
@@ -93,7 +103,7 @@ def draw_world(world):
     # Obstacles and Resources
     for x in range(GRID_SIZE):
         for y in range(GRID_SIZE):
-            rect = pygame.Rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+            rect = pygame.Rect(int(x * sc_x), int(y * sc_y), int(sc_x), int(sc_y))
             if world.is_obstacle((x, y)):
                 pygame.draw.rect(screen, (20, 20, 20), rect)
             elif (x, y) in world.resource_fields:
@@ -102,45 +112,44 @@ def draw_world(world):
                     val = field.intensity / field.max_intensity
                     alpha = int(100 + val * 155) # Dimmer when low
                     color = (0, 255, 200)
-                    s = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
-                    pygame.draw.circle(s, (*color, alpha), (CELL_SIZE//2, CELL_SIZE//2), CELL_SIZE // 2 - 1)
+                    s = pygame.Surface((int(sc_x), int(sc_y)), pygame.SRCALPHA)
+                    pygame.draw.circle(s, (*color, alpha), (int(sc_x)//2, int(sc_y)//2), int(min(sc_x, sc_y)) // 2 - 1)
                     screen.blit(s, rect)
 
     # Seasonal Tint
-    season_surf = pygame.Surface((GRID_SIZE * CELL_SIZE, HEIGHT), pygame.SRCALPHA)
+    season_surf = pygame.Surface((int(GRID_SIZE * sc_x), current_height), pygame.SRCALPHA)
     season_surf.fill(SEASON_COLORS[world.current_season])
     screen.blit(season_surf, (0, 0))
 
 def draw_agents(agents):
+    sc_x, sc_y = get_cells()
     for aid, agent in agents.items():
         if not agent.get("is_alive", True):
             continue
             
         x, y = agent["position"]
-        cx = x * CELL_SIZE + CELL_SIZE // 2
-        cy = y * CELL_SIZE + CELL_SIZE // 2
+        cx = int(x * sc_x + sc_x // 2)
+        cy = int(y * sc_y + sc_y // 2)
+        radius = int(min(sc_x, sc_y) // 2)
         
         clan_color = CLAN_COLORS[agent["clan_id"]]
         emo_color = EMOTION_COLORS[agent["emotion"]]
         
         # Halo (Emotion Visual)
         if agent["emotion"] == Emotion.CONFIDENT:
-            # Steady green halo
-            pygame.draw.circle(screen, (*EMOTION_COLORS[Emotion.CONFIDENT], 100), (cx, cy), CELL_SIZE, 2)
+            pygame.draw.circle(screen, (*EMOTION_COLORS[Emotion.CONFIDENT], 100), (cx, cy), radius*2, 2)
         elif agent["emotion"] == Emotion.STRESSED:
-            # Steady orange halo
-            pygame.draw.circle(screen, (*EMOTION_COLORS[Emotion.STRESSED], 100), (cx, cy), CELL_SIZE, 1)
+            pygame.draw.circle(screen, (*EMOTION_COLORS[Emotion.STRESSED], 100), (cx, cy), radius*2, 1)
         elif agent["emotion"] == Emotion.FEARFUL:
-            # Jittery red halo
             ox, oy = np.random.randint(-2, 3, 2)
-            pygame.draw.circle(screen, (*EMOTION_COLORS[Emotion.FEARFUL], 120), (cx + ox, cy + oy), CELL_SIZE, 1)
+            pygame.draw.circle(screen, (*EMOTION_COLORS[Emotion.FEARFUL], 120), (cx + ox, cy + oy), radius*2, 1)
 
         # Agent body
-        pygame.draw.circle(screen, clan_color, (cx, cy), CELL_SIZE // 2)
+        pygame.draw.circle(screen, clan_color, (cx, cy), radius)
         
         # Leader Marker (White Core)
         if agent["is_leader"]:
-            pygame.draw.circle(screen, (255, 255, 255), (cx, cy), CELL_SIZE // 4)
+            pygame.draw.circle(screen, (255, 255, 255), (cx, cy), radius // 2)
 
 def draw_dashboard(env):
     x0 = GRID_SIZE * CELL_SIZE + 15
@@ -228,6 +237,9 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.VIDEORESIZE:
+            current_width, current_height = event.size
+            screen = pygame.display.set_mode((current_width, current_height), pygame.RESIZABLE)
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_m and model:
                 use_model = not use_model
@@ -247,17 +259,56 @@ while running:
 
     draw_world(env.world)
     draw_agents(env.agents)
-    draw_dashboard(env)
+    
+    # Dashboard stays anchored to right
+    dash_x = current_width - PANEL_WIDTH + 15
+    def draw_dashboard_scalable(env):
+        y = 15
+        def line(txt, color=TEXT_COLOR, bold=False, indent=0):
+            nonlocal y
+            f = bold_font if bold else font
+            surf = f.render(txt, True, color)
+            screen.blit(surf, (dash_x + indent, y))
+            y += 18
+            
+        line("GEOPOLITICAL ENGINE v2.0", color=ACCENT_COLOR, bold=True)
+        line(f"Step: {env.current_step}/{env.max_steps} | {env.world.current_season.name}")
+        
+        # Model Status
+        status_str = "TRAINED MODEL" if use_model else "RANDOM WALKS"
+        status_color = (100, 255, 100) if use_model else (255, 100, 100)
+        det_str = "(DET)" if is_deterministic and use_model else "(STOCH)" if use_model else ""
+        line(f"MODE: {status_str} {det_str}", color=status_color, bold=True)
+        line("-" * 38)
+        
+        # CLAN STATS
+        for cid, clan in env.world.clans.items():
+            color = CLAN_COLORS[cid]
+            living_agents = [aid for aid in clan.agents if env.agents[aid].get("is_alive", True)]
+            line(f"CLAN {cid} ({clan.clan_type.name})", color=color, bold=True)
+            line(f" Population: {len(living_agents)}/{len(clan.agents)}", indent=10)
+            line(f" Territory: {len(clan.territory)} cells", indent=10)
+            y += 5
+        
+        line("-" * 38)
+        line("LEGEND & CONTROLS", color=ACCENT_COLOR, bold=True)
+        line("[M] Toggle Model | [D] Deterministic", indent=5)
+        # Briefly show last event
+        if env.event_log:
+            line(f"LAST: {env.event_log[-1]}", color=(255, 100, 100) if "WAR" in env.event_log[-1] else TEXT_COLOR, indent=5)
+
+    draw_dashboard_scalable(env)
 
     # Only reset if the Era is truncated (2000 steps)
     if any(trunc.values()):
         # Show Reset Overlay
-        reset_surf = pygame.Surface((GRID_SIZE * CELL_SIZE, HEIGHT), pygame.SRCALPHA)
+        sc_x, sc_y = get_cells()
+        reset_surf = pygame.Surface((int(GRID_SIZE * sc_x), current_height), pygame.SRCALPHA)
         reset_surf.fill((0, 0, 0, 180))
         screen.blit(reset_surf, (0, 0))
         
         msg = bold_font.render("SIMULATION ERA COMPLETE - RESETTING WORLD", True, (255, 255, 100))
-        msg_rect = msg.get_rect(center=( (GRID_SIZE * CELL_SIZE)//2, HEIGHT//2))
+        msg_rect = msg.get_rect(center=( int(GRID_SIZE * sc_x)//2, current_height//2))
         screen.blit(msg, msg_rect)
         pygame.display.flip()
         pygame.time.wait(2000) # Wait 2 seconds so user sees it

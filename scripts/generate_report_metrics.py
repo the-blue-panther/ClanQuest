@@ -96,10 +96,28 @@ def run_evaluation(num_episodes=10):
         # Conflicts include both successful (CONQUEST) and failed attempts
         total_battles = sum(1 for e in era_stats['event_chronology'] if e['event'] in ['CONQUEST', 'REPULSED'])
         
+        # CLAN SPECIFIC DATA
+        clan_metrics = {}
+        for cid, cstats in era_stats['clans'].items():
+            clan_metrics[f'MSI_Clan_{cid}'] = cstats['survival_rate']
+            clan_metrics[f'GER_Clan_{cid}'] = max(0, cstats['territory_delta']) / max(1, step)
+            # ME and ESS are approximated for simplicity here from global if not tracked per-agent
+            # Better: use individual agent data if possible. 
+            # For now, let's track ME as food/cost for that clan.
+            clan_food = cstats['food_collected']
+            clan_cost = sum(0.15 * (1.5 if env.world.territory_map.get(env.agents[aid]["position"]) not in [None, cid] else 1.0) 
+                            for aid in env.world.clans[cid].agents if env.agents[aid]['is_alive'])
+            clan_metrics[f'ME_Clan_{cid}'] = clan_food / max(0.1, clan_cost)
+            
+            # Clan ESS: Stable steps of members
+            clan_living = [aid for aid in env.world.clans[cid].agents if env.agents[aid]['is_alive']]
+            clan_stable = sum(1 for aid in clan_living if int(env.agents[aid]['emotion']) in [0, 3])
+            clan_metrics[f'ESS_Clan_{cid}'] = (clan_stable / max(1, len(clan_living))) if clan_living else 0
+        
         ger = sum(max(0, c['territory_delta']) for c in era_stats['clans'].values()) / max(1, step)
         ccr = sum(c['initial_population'] - c['final_population'] for c in era_stats['clans'].values()) / max(1, step)
         
-        all_metrics.append({
+        ep_entry = {
             'MSI': era_stats['total_survival_rate'],
             'GER': ger,
             'Battles': total_battles,
@@ -107,9 +125,48 @@ def run_evaluation(num_episodes=10):
             'ESS': ep_data['stable_steps'] / max(1, step),
             'CCR': ccr,
             'living_counts_trend': ep_data['living_counts']
-        })
+        }
+        ep_entry.update(clan_metrics)
+        all_metrics.append(ep_entry)
         print(f"    [+] Ep {ep} MSI: {era_stats['total_survival_rate']:.1%}, Battles: {total_battles}")
+    
+    # NEW: PRINT CLAN MEANS FOR REPORT SYNC
+    df = pd.DataFrame(all_metrics)
+    print("\n--- EXACT CLAN METRIC MEANS (SYNC) ---")
+    for cid in [0, 1, 2]:
+        print(f"Clan {cid}:")
+        print(f"  MSI: {df[f'MSI_Clan_{cid}'].mean():.4f}")
+        print(f"  GER: {df[f'GER_Clan_{cid}'].mean():.6f}")
+        print(f"  ME:  {df[f'ME_Clan_{cid}'].mean():.4f}")
+        print(f"  ESS: {df[f'ESS_Clan_{cid}'].mean():.4f}")
+    
     return all_metrics
+
+def plot_clan_comparison(metrics):
+    """Compare metrics between clans to study behavioral divergence."""
+    print("[*] Generating Clan Comparison Plots...")
+    df = pd.DataFrame(metrics)
+    
+    # Define metrics to compare
+    comp_metrics = ['MSI', 'GER', 'ME', 'ESS']
+    clans = [0, 1, 2]
+    
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    axes = axes.flatten()
+    
+    for i, m in enumerate(comp_metrics):
+        cols = [f'{m}_Clan_{cid}' for cid in clans]
+        clan_df = df[cols].melt(var_name='Clan', value_name='Value')
+        clan_df['Clan'] = clan_df['Clan'].str.replace(f'{m}_Clan_', 'Clan ')
+        
+        sns.barplot(data=clan_df, x='Clan', y='Value', ax=axes[i], palette="viridis", capsize=.1)
+        axes[i].set_title(f"Emergent {m} by Clan", fontsize=13, fontweight='bold')
+        axes[i].set_ylabel(m)
+        
+    plt.suptitle("Clan-Specific Behavioral Emergence\nComparative Study of Tribal Strategies", fontsize=16, fontweight='bold')
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.savefig(os.path.join(REPORT_DIR, "scientific_clan_comparison.png"), dpi=300)
+    plt.close()
 
 def plot_advanced_metrics(metrics):
     """Generate final plots incorporating scientific findings."""
@@ -159,5 +216,7 @@ def plot_advanced_metrics(metrics):
 if __name__ == "__main__":
     if os.path.exists(LOG_DIR): plot_training_progress(extract_tb_logs(LOG_DIR))
     eval_m = run_evaluation(num_episodes=10)
-    if eval_m: plot_advanced_metrics(eval_m)
+    if eval_m: 
+        plot_advanced_metrics(eval_m)
+        plot_clan_comparison(eval_m)
     print("\n[SUCCESS] Final Scientific Assets Refreshed.")

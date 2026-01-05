@@ -98,6 +98,7 @@ class MultiAgentSimulatedWorldEnv(gym.Env):
         self.scientific_history = []
         for cid, clan in self.world.clans.items():
             self.initial_territory_counts[cid] = len(clan.territory)
+            clan.food_collected = 0.0 # Track per-clan food
 
     def reset(self, seed=None, options=None):
         # Log stats of the ERA that just finished
@@ -184,6 +185,7 @@ class MultiAgentSimulatedWorldEnv(gym.Env):
             # Track collection
             if delta > 0:
                 self.total_collected += delta
+                clan.food_collected += delta
             
             # Conflict Outcome tracker
             conflict_outcome = 0
@@ -495,6 +497,7 @@ class MultiAgentSimulatedWorldEnv(gym.Env):
                 "initial_territory": initial_t,
                 "final_territory": final_t,
                 "territory_delta": final_t - initial_t,
+                "food_collected": getattr(clan, 'food_collected', 0.0),
                 "dominant_emotion": analytics.get("clan_emotion", "N/A"),
                 "avg_risk_weight": analytics.get("avg_risk_weight", 0.0),
                 "agent_deaths": {aid: self.death_steps.get(aid, "STILL_ALIVE") for aid in clan.agents}
