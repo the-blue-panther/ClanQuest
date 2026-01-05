@@ -21,9 +21,10 @@ __pycache__/
 *.sublime-project
 
 # =========================
-# Jupyter
+# Jupyter / Notebooks (Excluded)
 # =========================
 .ipynb_checkpoints/
+notebooks/
 
 # =========================
 # OS-specific
@@ -32,11 +33,19 @@ __pycache__/
 Thumbs.db
 
 # =========================
-# RL Training Artifacts (Ignore all checkpoints and intermediate logs)
+# RL Training Artifacts
 # =========================
 models/checkpoints/
 models/trained/*.zip
 !models/trained/ppo_final_emergence.zip
+
+# =========================
+# Project Scaffolding (Excluded from Repo)
+# =========================
+setup.py
+tests/
+configs/
+"TensorBoard_DRL project images for training_files/"
 
 # =========================
 # Experiment Outputs
